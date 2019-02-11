@@ -2,6 +2,7 @@ Build
 ======
 
 $ sh ./autogen.sh
+
 $ make
 
 Run
@@ -33,7 +34,7 @@ base64 encoded.
   $ ./pspioctl --pek-import
 
   Before issuing the command you must copy your a valid PEK and OCA
-  certificates in certs/input/pek.b64 and certs/output/oca.b64.
+  certificates in certs/input/pek.b64 and certs/input/oca.b64.
 
 * To export the PDH and identify of the platform
 
