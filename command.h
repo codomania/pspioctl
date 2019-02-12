@@ -19,7 +19,8 @@ int pek_cert_import(const unsigned char* pek_cert, unsigned int pek_cert_len,
 		const unsigned char* oca_cert, unsigned int oca_cert_len);
 int pdh_cert_export(unsigned char* pdh, unsigned int pdh_len,
 		unsigned char* cert_chain, unsigned int cert_chain_len);
-int get_id(unsigned long *socket1, unsigned long *socket2);
+int get_id(unsigned char **socket1, unsigned int *socket1_len,
+	   unsigned char **socket2, unsigned int *socket2_len);
 
 #endif
 

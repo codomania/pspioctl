@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <linux/psp-sev.h>
 
@@ -159,25 +160,44 @@ int pdh_cert_export(unsigned char* pdh, unsigned int pdh_len,
 }
 
 #if HAVE_DECL_SEV_GET_ID
-int get_id(unsigned long *socket1, unsigned long *socket2)
+int get_id(unsigned char **socket1, unsigned int *socket1_len,
+	   unsigned char **socket2, unsigned int *socket2_len)
 {
 	int r;
 	struct sev_user_data_get_id data = { };
 
-	r = sev_ioctl(SEV_GET_ID, &data);
-	if (r)
-		return r;
+	*socket1 = calloc(sizeof(char), sizeof(data.socket1));
+	if (!*socket1)
+		return 1;
 
-	memcpy(socket1, data.socket1, sizeof(data.socket1));
-	memcpy(socket2, data.socket2, sizeof(data.socket2));
+	*socket2 = calloc(sizeof(char), sizeof(data.socket2));
+	if (!*socket2) {
+		free(*socket1);
+		return 1;
+	}
+
+	r = sev_ioctl(SEV_GET_ID, &data);
+	if (r) {
+		free(*socket1);
+		free(*socket2);
+		return r;
+	}
+
+	*socket1_len = sizeof(data.socket1);
+	*socket2_len = sizeof(data.socket2);
+
+	memcpy(*socket1, data.socket1, sizeof(data.socket1));
+	memcpy(*socket2, data.socket2, sizeof(data.socket2));
 
 	return 0;
 }
 #else
-int get_id(unsigned long *socket1, unsigned long *socket2)
+int get_id(unsigned char **socket1, unsigned int *socket1_len,
+	   unsigned char **socket2, unsigned int *socket2_len)
 {
 	fprintf(stderr, "%s 'not supported'\n", __func__); 
 	return 1; /* not supported */
 }
 #endif
+
 

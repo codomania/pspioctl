@@ -241,26 +241,27 @@ error:
 static void show_id(void)
 {
 	int ret;
-	unsigned long id1, id2;
 	int i;
-	unsigned char *ptr;
+	unsigned char *id1, *id2;
+	unsigned int id1_len, id2_len;
 
-	ret = get_id(&id1, &id2);
+	ret = get_id(&id1, &id1_len, &id2, &id2_len);
 	if (ret) {
 		fprintf(stderr, "Error failed to get socket id\n");
 		return;
 	}
 
 	printf("socket1:");
-	ptr = (unsigned char*)&id1;
-	for (i = 0; i < sizeof(id1); i++)
-		printf("%02hhx", ptr[i]);
+	for (i = 0; i < id1_len; i++)
+		printf("%02hhx", id1[i]);
 
 	printf("\nsocket2:");
-	ptr = (unsigned char*)&id2;
-	for (i = 0; i < sizeof(id1); i++)
-		printf("%02hhx", ptr[i]);
+	for (i = 0; i < id2_len; i++)
+		printf("%02hhx", id2[i]);
 	printf("\n");
+
+	free(id1);
+	free(id2);
 }
 
 static void print_cert(const char *fname)
