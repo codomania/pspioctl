@@ -304,16 +304,16 @@ static void print_cert(const char *fname)
 static void help(void)
 {
 	fprintf(stderr,
-		"status                 Print the platform status\n"
-		"pek-gen                Re-generate the PEK\n"
-		"pdh-gen                Re-generate the PDH\n"
-		"pek-csr                Re-generate the CSR\n"
-		"pdh-export             Export the PDH certificate chain\n"
-		"pek-import             Import the PEK/OCA certificate\n"
-		"get-id                 Show the ID used to get CEK public key\n"
-		"decode-cert            Decode the certificate blob\n"
-		"reset                  Perform the factory reset\n"
-		"help                   Show this help\n"
+		"--status                 Print the platform status\n"
+		"--pek-gen                Re-generate the PEK\n"
+		"--pdh-gen                Re-generate the PDH\n"
+		"--pek-csr                Re-generate the CSR\n"
+		"--pdh-export             Export the PDH certificate chain\n"
+		"--pek-import             Import the PEK/OCA certificate\n"
+		"--get-id                 Show the ID used to get CEK public key\n"
+		"--decode-cert            Decode the certificate blob\n"
+		"--reset                  Perform the factory reset\n"
+		"--help                   Show this help\n"
 	       );
 	exit(1);
 }
@@ -335,6 +335,9 @@ int main(int argc, char **argv)
 		{"reset",	no_argument,		0,'k' },
 		{"help",	no_argument,		0,'l' },
 	};
+
+	if (argc < 2)
+		help();
 
 	while(1) {
 		c = getopt_long(argc, argv, "", long_options, &option_index);
