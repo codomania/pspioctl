@@ -23,34 +23,34 @@ enum pubkey_algo_t {
 	PUBKEY_ALGO_ECDH_SHA_384 = 0x103,
 };
 
-typedef struct rsa_sig_t {
+typedef struct __attribute__((__packed__)) rsa_sig_t {
 	uint8_t		s[512];
 } rsa_sig_t;
 
-typedef struct ecdsa_sig_t {
+typedef struct __attribute__((__packed__)) ecdsa_sig_t {
 	uint8_t		r[72];
 	uint8_t		s[72];
 } ecdsa_sig_t;
 
-typedef struct rsa_key_t {
+typedef struct __attribute__((__packed__)) rsa_key_t {
 	uint32_t	modulus_sz;
 	uint8_t		pubexp[512];
 	uint8_t		modulus[512];
 } rsa_key_t;
 
-typedef struct ecdsa_key_t {
+typedef struct __attribute__((__packed__)) ecdsa_key_t {
 	uint32_t	curve;
 	uint8_t		qx[72];
 	uint8_t		qy[72];
 } ecdsa_key_t;
 
-typedef struct ecdh_key_t {
+typedef struct __attribute__((__packed__)) ecdh_key_t {
 	uint32_t	curve;
 	uint8_t		qx[72];
 	uint8_t		qy[72];
 } ecdh_key_t;
 	
-typedef struct cert_data_t {
+typedef struct  __attribute__((__packed__)) cert_data_t {
 	uint32_t	version;
 	uint8_t		major;
 	uint8_t		minor;
