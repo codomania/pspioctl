@@ -64,22 +64,13 @@ static int load_file(const char *file, char **data, int *len)
 		return 1;
 	}
 
-	*data = calloc(sizeof(char), sz);
-	if (!*data) {
-		fclose(fp);
-		free(base64);
-		perror("malloc()");
-		return 1;
-	}
-	*len = sz;
 
 	fread(base64, 1, sz, fp);
 	fclose(fp);
 
 	raw = base64_to_bin(base64, &rawsz);
-	memcpy(*data, raw, rawsz);
-
-	printf("Load %s base64=%ld raw=%ld\n", file, sz, rawsz);
+	*data = raw;
+	*len = rawsz;
 
 	return 0;
 }
@@ -183,6 +174,7 @@ static void handle_cert_export(void)
 
 	save_to_file(pdh_file, pdh, expected_pdh_len);
 	
+#if 1
 	/* cert chain contains PEK, OCA and CEK */
 	out = extract_cert(certs, expected_certs_len, PUBKEY_PEK);
 	if (out) {
@@ -195,13 +187,13 @@ static void handle_cert_export(void)
 		save_to_file(oca_file, out, sizeof(cert_data_t));
 		free(out);
 	}
-
 	out = extract_cert(certs, expected_certs_len, PUBKEY_CEK);
 	if (out) {
 		save_to_file(cek_file, out, sizeof(cert_data_t));
 		free(out);
 	}
 
+#endif
 error:
 	free(pdh);
 	free(certs);
@@ -242,26 +234,19 @@ static void show_id(void)
 {
 	int ret;
 	int i;
-	unsigned char *id1, *id2;
-	unsigned int id1_len, id2_len;
+	unsigned char *id;
+	unsigned int len;
 
-	ret = get_id(&id1, &id1_len, &id2, &id2_len);
+	ret = get_id(&id, &len);
 	if (ret) {
 		fprintf(stderr, "Error failed to get socket id\n");
 		return;
 	}
 
-	printf("socket1:");
-	for (i = 0; i < id1_len; i++)
-		printf("%02hhx", id1[i]);
-
-	printf("\nsocket2:");
-	for (i = 0; i < id2_len; i++)
-		printf("%02hhx", id2[i]);
+	for (i = 0; i < len; i++)
+		printf("%02hhx", id[i]);
 	printf("\n");
-
-	free(id1);
-	free(id2);
+	free(id);
 }
 
 static void print_cert(const char *fname)

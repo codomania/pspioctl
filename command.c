@@ -159,41 +159,43 @@ int pdh_cert_export(unsigned char* pdh, unsigned int pdh_len,
 	return sev_ioctl(SEV_PDH_CERT_EXPORT, &data);
 }
 
-#if HAVE_DECL_SEV_GET_ID
-int get_id(unsigned char **socket1, unsigned int *socket1_len,
-	   unsigned char **socket2, unsigned int *socket2_len)
+#if HAVE_DECL_SEV_GET_ID2
+int get_id(unsigned char **id, unsigned int *len)
 {
 	int r;
-	struct sev_user_data_get_id data = { };
+	unsigned char *buf;
+	unsigned int sz;
+	struct sev_user_data_get_id2 data = { };
 
-	*socket1 = calloc(sizeof(char), sizeof(data.socket1));
-	if (!*socket1)
-		return 1;
-
-	*socket2 = calloc(sizeof(char), sizeof(data.socket2));
-	if (!*socket2) {
-		free(*socket1);
+	r = sev_ioctl(SEV_GET_ID2, &data);
+	if (r == SEV_RET_INVALID_LEN) {
+		sz = data.length;
+	} else {
+		fprintf(stderr, "Error: expected %d got %d\n",
+			SEV_RET_INVALID_LEN, r);
 		return 1;
 	}
 
-	r = sev_ioctl(SEV_GET_ID, &data);
+	buf = calloc(sizeof(char), sz);
+	if (!buf) {
+		perror("malloc()");
+		return 1;
+	}
+
+	data.address = (unsigned long)buf;
+	data.length = sz;
+	r = sev_ioctl(SEV_GET_ID2, &data);
 	if (r) {
-		free(*socket1);
-		free(*socket2);
+		free(buf);
 		return r;
 	}
 
-	*socket1_len = sizeof(data.socket1);
-	*socket2_len = sizeof(data.socket2);
-
-	memcpy(*socket1, data.socket1, sizeof(data.socket1));
-	memcpy(*socket2, data.socket2, sizeof(data.socket2));
-
+	*id = buf;
+	*len = sz;
 	return 0;
 }
 #else
-int get_id(unsigned char **socket1, unsigned int *socket1_len,
-	   unsigned char **socket2, unsigned int *socket2_len)
+int get_id(unsigned char *id, unsigned int *len)
 {
 	fprintf(stderr, "%s 'not supported'\n", __func__); 
 	return 1; /* not supported */
