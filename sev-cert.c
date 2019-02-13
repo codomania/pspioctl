@@ -71,13 +71,13 @@ static void dump_sig_ecdsa(void *buf)
 
 char* extract_cert(const char *buf, size_t len, pubkey_usage_t type)
 {
-	int i, j;
+	int i;
 	cert_data_t *out;
 
-	for (i = 0, j = 0; i < len; i+= sizeof(cert_data_t), j++) {
-		buf += j * sizeof(cert_data_t);
-
+	for (i = 0; i < len; i+= sizeof(cert_data_t)) {
 		cert_data_t *h = (cert_data_t*) buf;
+
+		buf += sizeof(cert_data_t);
 
 		if (h->version != 0x1)
 			continue;
@@ -104,8 +104,10 @@ void dump_cert_data(void *buf, int len)
 	for (i = 0; i < len; i+= sizeof(cert_data_t)) {
 		cert_data_t *h = (cert_data_t*) buf;
 
-		if (h->version != 0x1)
+		if (h->version != 0x1) {
+			fprintf(stderr, "invalid version expect 0x1 got 0x%x\n", h->version);
 			continue;
+		}
 
 		printf("VERSION : %04d\n", h->version);
 		printf("MAJOR   : %02d\n", h->major);
@@ -150,9 +152,6 @@ void dump_cert_data(void *buf, int len)
 		default: printf(" INVALID\n"); break;
 		}
 
-		if (len < offsetof(cert_data_t, sig1_usage))
-			continue;
-
 		if (h->sig1_usage != SIG_USAGE_NOT_PRESENT) {
 			printf("SIG1\n");
 			switch(h->sig1_algo) {
@@ -187,7 +186,6 @@ void dump_cert_data(void *buf, int len)
 		}
 	
 		buf += sizeof(cert_data_t);
-		len -= sizeof(cert_data_t);
 	}
 }
 
