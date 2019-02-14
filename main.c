@@ -154,6 +154,7 @@ static void handle_cert_export(void)
 	char pek_file[] = "certs/output/pek.b64";
 	char oca_file[] = "certs/output/oca.b64";
 	char cek_file[] = "certs/output/cek.b64";
+	char certs_chain_file[] = "certs/output/certs_chain.b64";
 	char *out;
 
 	mkdir("certs", 0644);
@@ -178,6 +179,7 @@ static void handle_cert_export(void)
 	}
 
 	save_to_file(pdh_file, pdh, expected_pdh_len);
+	save_to_file(certs_chain_file, certs, expected_certs_len);
 	
 	/* cert chain contains PEK, OCA and CEK */
 	out = extract_cert(certs, expected_certs_len, PUBKEY_PEK);
