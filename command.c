@@ -12,6 +12,42 @@
 
 #include "command.h"
 
+extern int verbose;
+
+static struct cmd_def {
+	char *name;
+	size_t size;
+} cmd_buf;
+
+static struct cmd_def cmd_def[] = {
+	{ "reset", 0 },
+	{ "status", sizeof(struct sev_user_data_status) },
+	{ "pek_gen", 0 },
+	{ "pek_csr", sizeof(struct sev_user_data_pek_csr) },
+	{ "pdh_gen", 0 },
+	{ "pdh_export", sizeof(struct sev_user_data_pdh_cert_export) },
+	{ "pek_import", sizeof(struct sev_user_data_pek_cert_import) },
+	{ "get_id", sizeof(struct sev_user_data_get_id) },
+	{ "get_id2", sizeof(struct sev_user_data_get_id) },
+	{ NULL, 0 }
+};
+
+static void print_hex_dump(char *desc, void *addr, int len)
+{
+	int i;
+	unsigned int *buf = (unsigned int*)addr;
+
+	if (desc)
+		printf("%s", desc);
+	for (i = 0; i < len / sizeof(unsigned int); i++) {
+		if (i % 16 == 0)
+			printf("\n %04x   ", i);
+		printf("%04x ", *buf);
+		buf += 1;
+	}
+	printf("\n");
+}
+
 static int sev_ioctl(int cmd, void *data)
 {
 	int fd, r;
@@ -25,7 +61,18 @@ static int sev_ioctl(int cmd, void *data)
 
 	arg.cmd = cmd;
 	arg.data = (unsigned long)data;
+
+	if (verbose) {
+		printf("(in) ");
+		print_hex_dump(cmd_def[cmd].name, data, cmd_def[cmd].size);
+	}
+
 	r = ioctl(fd, SEV_ISSUE_CMD, &arg);
+	
+	if (verbose) {
+		printf("(out) ");
+		print_hex_dump(cmd_def[cmd].name, data, cmd_def[cmd].size);
+	}
 
 	close(fd);
 

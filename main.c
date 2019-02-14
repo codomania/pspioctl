@@ -10,6 +10,8 @@
 #include "sev-cert.h"
 #include "base64.h"
 
+int verbose;
+
 static void save_to_file(const char *file, const char *data, size_t len)
 {
 	FILE *fp;
@@ -174,7 +176,6 @@ static void handle_cert_export(void)
 
 	save_to_file(pdh_file, pdh, expected_pdh_len);
 	
-#if 1
 	/* cert chain contains PEK, OCA and CEK */
 	out = extract_cert(certs, expected_certs_len, PUBKEY_PEK);
 	if (out) {
@@ -193,7 +194,6 @@ static void handle_cert_export(void)
 		free(out);
 	}
 
-#endif
 error:
 	free(pdh);
 	free(certs);
@@ -299,6 +299,7 @@ static void help(void)
 		"--decode-cert            Decode the certificate blob\n"
 		"--reset                  Perform the factory reset\n"
 		"--help                   Show this help\n"
+		"--verbose                Dump the command input/output buffer\n"
 	       );
 	exit(1);
 }
@@ -319,6 +320,7 @@ int main(int argc, char **argv)
 		{"decode-cert",	required_argument,	0,'j' },
 		{"reset",	no_argument,		0,'k' },
 		{"help",	no_argument,		0,'l' },
+		{"verbose",	no_argument,		0,'m' },
 	};
 
 	if (argc < 2)
@@ -346,6 +348,7 @@ int main(int argc, char **argv)
 		case 'k': printf("FACTORY_RESET: %s\n",
 				factory_reset() == 0 ? "success" : "failed");
 			  break;
+		case 'm': verbose = 1; break;
 		default: help();
 		}
 	}
