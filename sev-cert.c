@@ -163,7 +163,7 @@ void dump_cert_data(void *buf, int len)
 			case PUBKEY_ALGO_ECDSA_SHA_384:
 				dump_sig_ecdsa(h->sig1);
 				break;
-			default: printf("*** SIG ALGO INVALID\n"); break;
+			default: break;
 			}
 		}
 
@@ -181,7 +181,7 @@ void dump_cert_data(void *buf, int len)
 			case PUBKEY_ALGO_ECDSA_SHA_384:
 				dump_sig_ecdsa(h->sig2);
 				break;
-			default: printf("*** SIG ALGO INVALID\n"); break;
+			default: break;
 			}
 		}
 	

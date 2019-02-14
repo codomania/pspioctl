@@ -254,39 +254,14 @@ static void show_id(void)
 
 static void print_cert(const char *fname)
 {
-	char *buf;
-	size_t len, sz;
-	FILE *fp;
-	unsigned char *bin;
+	char *buf = NULL;
+	int len;
 
-	fp = fopen(fname, "rb");
-	if (fp == NULL) {
-		fprintf(stderr, "fopen() %s '%s'\n", fname, strerror(errno));
+	if (load_file(fname, &buf, &len))
 		return;
-	}
 
-	len = file_size(fp);
-	if (len < sizeof(cert_data_t)) {
-		fprintf(stderr, "file %s size is less than expected %ld\n",
-				fname, sizeof(cert_data_t));
-		fclose(fp);
-		return;
-	}
-
-	buf = malloc(len);
-	if (!buf) {
-		fclose(fp);
-		perror("malloc()");
-		return;
-	}
-
-	fread(buf, 1, len, fp);
-	fclose(fp);
-
-	bin = base64_to_bin(buf, &len);
-	dump_cert_data(bin, len);
+	dump_cert_data(buf, len);
 	free(buf);
-	free(bin);
 }
 
 static void help(void)
