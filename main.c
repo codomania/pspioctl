@@ -71,9 +71,12 @@ static int load_file(const char *file, char **data, int *len)
 	fclose(fp);
 
 	raw = base64_to_bin(base64, &rawsz);
-	*data = raw;
-	*len = rawsz;
-
+	*data = calloc(sizeof(char), sz);
+	if (!*data)
+		return 1;
+	memcpy(*data, raw, rawsz);
+	*len = sz;
+	free(raw);
 	return 0;
 }
 
