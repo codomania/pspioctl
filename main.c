@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "psp-sev.h"
+
 #include "command.h"
 #include "sev-cert.h"
 #include "base64.h"
@@ -43,6 +45,39 @@ static unsigned long file_size(FILE *fp)
 	return sz;
 }
 
+static int load_file_blob(const char *file, char **data, int *len)
+{
+	FILE *fp;
+	char *raw;
+	int sz;
+	unsigned long rawsz;
+
+	fp = fopen(file, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "%s fopen() %s '%s'\n", __func__,
+				file, strerror(errno));
+		return 1;
+	}
+
+	sz = file_size(fp);
+
+	raw = calloc(sizeof(char), sz);
+	if (!raw) {
+		fclose(fp);
+		perror("malloc()");
+		return 1;
+	}
+
+	if (fread(raw, 1, sz, fp) != sz)
+		fprintf(stderr, "failed to read %d bytes\n", sz);
+
+	fclose(fp);
+	*data = raw;
+	*len = sz;
+
+	return 0;
+}
+
 static int load_file(const char *file, char **data, int *len)
 {
 	FILE *fp;
@@ -67,7 +102,9 @@ static int load_file(const char *file, char **data, int *len)
 	}
 
 
-	fread(base64, 1, sz, fp);
+	if (fread(base64, 1, sz, fp) != sz)
+		fprintf(stderr, "failed to read %d bytes\n", sz);
+
 	fclose(fp);
 
 	raw = base64_to_bin(base64, &rawsz);
@@ -88,6 +125,27 @@ static char* state_to_str(uint8_t state)
 	case 2: return "working";
 	default: return "unknown";
 	}
+}
+
+static void show_snp_status(void)
+{
+	int ret;
+	struct sev_user_data_snp_status s;
+
+	ret = get_snp_status(&s);
+	if (ret) {
+		perror("snp_status()");
+		fprintf(stderr, "failed to get status '0x%x'\n", ret);
+		return;
+	}
+
+	printf("Status\n"); 
+	printf("  major       : %d\n", s.api_major);
+	printf("  minor       : %d\n", s.api_minor);
+	printf("  build       : %d\n", s.build_id);
+	printf("  state       : %d (%s)\n", s.state, state_to_str(s.state));
+	printf("  guests      : %d\n", s.guest_count);
+	printf("  tcb_version : 0x%llx\n", s.tcb_version);
 }
 
 static void show_status(void)
@@ -123,7 +181,7 @@ static void handle_pek_csr(void)
 	printf("Generaring CSR ...\n");
 	sz = get_pek_csr_length();
 	if (sz < 0) {
-		fprintf(stderr, "failed to get the CSR length code '%d'\n", sz);
+		fprintf(stderr, "failed to get the CSR length code '%ld'\n", sz);
 		return;
 	}
 
@@ -254,6 +312,54 @@ static void show_id(void)
 	free(id);
 }
 
+static void snp_set_config(const char *val)
+{
+	char certs_file[] = "certs/input/snp_certs.raw";
+	char *certs = NULL, *p;
+	unsigned long reported_tcb;
+	int certs_len = 0, ret;
+
+	reported_tcb = strtoll(val, &p, 16);
+
+	load_file_blob(certs_file, &certs, &certs_len);
+
+	ret = set_ext_snp_config(reported_tcb, certs, certs_len);
+	if (ret) {
+		fprintf(stderr, "failed to set extended config '0x%x'\n", ret);
+		return;
+	}
+}
+
+static void snp_get_config(void)
+{
+	struct sev_user_data_ext_snp_config data = {};
+	struct sev_user_data_snp_config config = {};
+	char certs_file[] = "certs/output/snp_certs.b64";
+	char *certs, certs_len;
+	int ret;
+
+	certs = malloc(sizeof(char) * 8192);
+	if (certs == NULL) {
+		fprintf(stderr, "malloc()\n");
+		return;
+	}
+
+	data.config_address = (unsigned long)&config;
+	data.certs_address = (unsigned long)certs;
+	data.certs_len = 8192;
+
+	ret = get_ext_snp_config(&data);
+	if (ret) {
+		fprintf(stderr, "failed to get extended config '0x%x'\n", ret);
+		return;
+	}
+
+	if (data.certs_len)
+		save_to_file(certs_file, certs, data.certs_len);
+
+	fprintf(stderr, "Reported TCB 0x%llx\n", config.reported_tcb);
+}
+
 static void print_cert(const char *fname)
 {
 	char *buf = NULL;
@@ -270,6 +376,7 @@ static void help(void)
 {
 	fprintf(stderr,
 		"--status                 Print the platform status\n"
+		"--snp-status             Print the SNP platform status\n"
 		"--pek-gen                Re-generate the PEK\n"
 		"--pdh-gen                Re-generate the PDH\n"
 		"--pek-csr                Re-generate the CSR\n"
@@ -280,6 +387,8 @@ static void help(void)
 		"--reset                  Perform the factory reset\n"
 		"--help                   Show this help\n"
 		"--verbose                Dump the command input/output buffer\n"
+		"--snp-set-config	  Set the extended configuration information\n"
+		"--snp-get-config	  Get the extended configuration information\n"
 	       );
 	exit(1);
 }
@@ -301,6 +410,9 @@ int main(int argc, char **argv)
 		{"reset",	no_argument,		0,'k' },
 		{"help",	no_argument,		0,'l' },
 		{"verbose",	no_argument,		0,'m' },
+		{"snp-status",	no_argument,		0,'n' },
+		{"snp-set-config", required_argument,	0,'o' },
+		{"snp-get-config", no_argument,	0,'p' },
 	};
 
 	if (argc < 2)
@@ -329,6 +441,9 @@ int main(int argc, char **argv)
 				factory_reset() == 0 ? "success" : "failed");
 			  break;
 		case 'm': verbose = 1; break;
+		case 'n': show_snp_status(); break;
+		case 'o': snp_set_config(optarg); break;
+		case 'p': snp_get_config(); break;
 		default: help();
 		}
 	}

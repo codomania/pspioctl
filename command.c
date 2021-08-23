@@ -8,8 +8,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <linux/psp-sev.h>
-
 #include "command.h"
 
 extern int verbose;
@@ -29,6 +27,9 @@ static struct cmd_def cmd_def[] = {
 	{ "pek_import", sizeof(struct sev_user_data_pek_cert_import) },
 	{ "get_id", sizeof(struct sev_user_data_get_id) },
 	{ "get_id2", sizeof(struct sev_user_data_get_id) },
+	{ "snp_status", sizeof(struct sev_user_data_snp_status) },
+	{ "snp_set_config", sizeof(struct sev_user_data_ext_snp_config) },
+	{ "snp_get_config", sizeof(struct sev_user_data_ext_snp_config) },
 	{ NULL, 0 }
 };
 
@@ -85,6 +86,12 @@ int get_status(struct sev_user_data_status *status)
 {
 	return sev_ioctl(SEV_PLATFORM_STATUS, status);
 }
+
+int get_snp_status(struct sev_user_data_snp_status *status)
+{
+	return sev_ioctl(SNP_PLATFORM_STATUS, status);
+}
+
 
 int pek_gen(void)
 {
@@ -206,6 +213,29 @@ int pdh_cert_export(unsigned char* pdh, unsigned int pdh_len,
 	return sev_ioctl(SEV_PDH_CERT_EXPORT, &data);
 }
 
+int set_ext_snp_config(unsigned long reported_tcb, char *certs, int certs_len)
+{
+	struct sev_user_data_snp_config config = {};
+	struct sev_user_data_ext_snp_config data = {};
+
+	if (certs && certs_len) {
+		data.certs_address = (unsigned long)certs;
+		data.certs_len = certs_len;
+	}
+
+	if (reported_tcb) {
+		config.reported_tcb = reported_tcb;
+		data.config_address = (unsigned long)&config;
+	}
+
+	return sev_ioctl(SNP_SET_EXT_CONFIG, &data);
+}
+
+int get_ext_snp_config(struct sev_user_data_ext_snp_config *data)
+{
+	return sev_ioctl(SNP_GET_EXT_CONFIG, data);
+}
+
 #if HAVE_DECL_SEV_GET_ID2
 int get_id(unsigned char **id, unsigned int *len)
 {
@@ -242,7 +272,7 @@ int get_id(unsigned char **id, unsigned int *len)
 	return 0;
 }
 #else
-int get_id(unsigned char *id, unsigned int *len)
+int get_id(unsigned char **id, unsigned int *len)
 {
 	fprintf(stderr, "%s 'not supported'\n", __func__); 
 	return 1; /* not supported */
